@@ -158,7 +158,7 @@ const Chat: React.FC = () => {
 					</div>
 				) : (
 					messages.map((message) => {
-						const isMyMessage = message.senderUsername === user?.username;
+						const isMyMessage = message.senderUsername === user?.username
 						return (
 							<div
 								key={message.id}
@@ -168,28 +168,28 @@ const Chat: React.FC = () => {
 								<div
 									className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-lg transform transition-all duration-200 hover:scale-105 ${
 										isMyMessage
-											? 'bg-gradient-to-r from-green-500 to-green-600 text-white rounded-br-md ml-12'
-											: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-md mr-12 border-l-4 border-blue-500'
+											? 'bg-gradient-to-r from-green-500 to-green-600 rounded-br-md ml-12'
+											: 'bg-white rounded-bl-md mr-12 border-l-4 border-blue-500'
 									}`}>
 									<div className='flex items-baseline space-x-2 mb-1'>
 										<span
 											className={`text-xs font-bold ${
-												isMyMessage
-													? 'text-green-100'
-													: 'text-blue-600'
+												isMyMessage ? 'text-green-100' : 'text-blue-600'
 											}`}>
 											{isMyMessage ? 'me' : message.senderUsername}
 										</span>
 										<span
 											className={`text-xs ${
-												isMyMessage
-													? 'text-green-200'
-													: 'text-gray-500'
+												isMyMessage ? 'text-green-200' : 'text-gray-500'
 											}`}>
 											{formatTime(message.timestamp)}
 										</span>
 									</div>
-									<p className='text-sm leading-relaxed font-medium'>{message.content}</p>
+									<p className={`text-sm leading-relaxed font-medium ${
+										isMyMessage ? 'text-white' : 'text-gray-800'
+									}`}>
+										{message.content}
+									</p>
 								</div>
 							</div>
 						)
