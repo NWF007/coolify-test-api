@@ -26,14 +26,22 @@ class ChatService {
 		this.connection = new HubConnectionBuilder()
 			.withUrl(CHAT_HUB_URL, {
 				accessTokenFactory: () => token,
-				transport: HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling, // Fallback transports when WebSockets are blocked
+				transport:
+					HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling, // Fallback transports when WebSockets are blocked
 			})
 			.withAutomaticReconnect()
 			.configureLogging(LogLevel.Information)
 			.build()
 
 		// Set up event handlers
-		this.connection.on('ReceiveMessage', (message: ChatMessage) => {
+		this.connection.on('ReceiveMessage', (username: string, content: string, timestamp: string) => {
+			const message: ChatMessage = {
+				id: Date.now(), // Generate a simple numeric ID
+				content,
+				senderUsername: username,
+				senderId: 0, // We don't have sender ID from backend, using placeholder
+				timestamp
+			}
 			this.messageHandlers.forEach((handler) => handler(message))
 		})
 
@@ -53,13 +61,13 @@ class ChatService {
 		} catch (error) {
 			console.error('Error connecting to chat hub:', error)
 			console.log('Trying alternative connection method...')
-			
+
 			// Try with different transport if WebSocket fails
 			try {
 				if (this.connection) {
 					await this.connection.stop()
 				}
-				
+
 				this.connection = new HubConnectionBuilder()
 					.withUrl(CHAT_HUB_URL, {
 						accessTokenFactory: () => token,
@@ -70,7 +78,14 @@ class ChatService {
 					.build()
 
 				// Re-setup event handlers
-				this.connection.on('ReceiveMessage', (message: ChatMessage) => {
+				this.connection.on('ReceiveMessage', (username: string, content: string, timestamp: string) => {
+					const message: ChatMessage = {
+						id: Date.now(), // Generate a simple numeric ID
+						content,
+						senderUsername: username,
+						senderId: 0, // We don't have sender ID from backend, using placeholder
+						timestamp
+					}
 					this.messageHandlers.forEach((handler) => handler(message))
 				})
 
@@ -85,7 +100,10 @@ class ChatService {
 				await this.connection.start()
 				console.log('Connected to chat hub using Long Polling fallback!')
 			} catch (fallbackError) {
-				console.error('Failed to connect even with fallback transport:', fallbackError)
+				console.error(
+					'Failed to connect even with fallback transport:',
+					fallbackError
+				)
 				throw fallbackError
 			}
 		}
@@ -113,7 +131,8 @@ class ChatService {
 
 	async sendMessage(content: string, roomId: string): Promise<void> {
 		if (this.connection) {
-			await this.connection.invoke('SendMessageToRoom', content, roomId)
+			console.log('Sending message:', { content, roomId })
+			await this.connection.invoke('SendMessageToRoom', roomId, content)
 		}
 	}
 
