@@ -33,8 +33,23 @@ const Login: React.FC = () => {
 		}
 	}
 
-	const handleTestLogin = (username: string, password: string) => {
-		setCredentials({ username, password })
+	const handleTestLogin = async (username: string, password: string) => {
+		const testCredentials = { username, password }
+		setCredentials(testCredentials)
+		
+		setIsLoading(true)
+		setError('')
+
+		try {
+			await login(testCredentials)
+		} catch (error: any) {
+			setError(
+				error.response?.data?.message ||
+					'Login failed. Please check your credentials.'
+			)
+		} finally {
+			setIsLoading(false)
+		}
 	}
 
 	return (

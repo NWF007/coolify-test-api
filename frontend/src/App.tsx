@@ -5,7 +5,9 @@ import Chat from './components/Chat'
 import './App.css'
 
 const AppContent: React.FC = () => {
-	const { isAuthenticated, isLoading } = useAuth()
+	const { isAuthenticated, isLoading, user } = useAuth()
+
+	console.log('App state:', { isAuthenticated, isLoading, user })
 
 	if (isLoading) {
 		return (

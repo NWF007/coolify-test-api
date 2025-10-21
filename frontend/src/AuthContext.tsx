@@ -57,7 +57,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 	const login = async (credentials: LoginRequest) => {
 		try {
+			console.log('Starting login process...')
 			const response = await authApi.login(credentials)
+			console.log('Login API response:', response)
+			
 			localStorage.setItem('authToken', response.token)
 			localStorage.setItem(
 				'currentUser',
@@ -68,9 +71,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 				})
 			)
 
+			console.log('Getting current user...')
 			const currentUser = await authApi.getCurrentUser()
+			console.log('Current user:', currentUser)
 			setUser(currentUser)
+			console.log('User state updated, isAuthenticated should be true')
 		} catch (error) {
+			console.error('Login error:', error)
 			throw error
 		}
 	}
