@@ -934,3 +934,61 @@ code {
 		max-width: 28rem;
 	}
 }
+
+/* Custom animations for modern chat */
+@keyframes fade-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-fade-in-up {
+	animation: fade-in-up 0.3s ease-out forwards;
+}
+
+/* Custom scrollbar */
+.scrollbar-thin {
+	scrollbar-width: thin;
+}
+
+.scrollbar-thumb-violet-500\/20::-webkit-scrollbar-thumb {
+	background-color: rgba(139, 92, 246, 0.2);
+	border-radius: 9999px;
+}
+
+.scrollbar-track-transparent::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+	width: 6px;
+}
+
+/* Glassmorphism effects */
+.backdrop-blur-xl {
+	backdrop-filter: blur(24px);
+}
+
+.backdrop-blur-sm {
+	backdrop-filter: blur(4px);
+}
+
+/* Ring utilities */
+.ring-2 {
+	--tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+	--tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+	box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.ring-violet-500\/20 {
+	--tw-ring-color: rgba(139, 92, 246, 0.2);
+}
+
+.ring-violet-500\/30 {
+	--tw-ring-color: rgba(139, 92, 246, 0.3);
+}
