@@ -25,6 +25,9 @@ builder.Services.AddSignalR();
 var jwtSecret = builder.Configuration["JwtSecret"] ?? "your-super-secret-jwt-key-that-is-at-least-32-characters-long";
 var key = Encoding.ASCII.GetBytes(jwtSecret);
 
+Console.WriteLine($"JWT Secret length: {jwtSecret.Length}");
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -48,6 +51,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 {
                     context.Token = accessToken;
                 }
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+                Console.WriteLine($"Path: {context.Request.Path}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine($"JWT Token validated successfully for path: {context.Request.Path}");
                 return Task.CompletedTask;
             }
         };

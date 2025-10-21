@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { LoginRequest, LoginResponse, User } from './types'
 
-const API_BASE_URL =
+const API_BASE_URL = process.env.REACT_APP_API_URL || (
 	process.env.NODE_ENV === 'production'
 		? 'https://test-api.stor8.cloud'
 		: 'http://localhost:5123'
+)
 
 // Create axios instance
 const api = axios.create({
