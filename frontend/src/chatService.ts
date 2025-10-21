@@ -34,16 +34,19 @@ class ChatService {
 			.build()
 
 		// Set up event handlers
-		this.connection.on('ReceiveMessage', (username: string, content: string, timestamp: string) => {
-			const message: ChatMessage = {
-				id: Date.now(), // Generate a simple numeric ID
-				content,
-				senderUsername: username,
-				senderId: 0, // We don't have sender ID from backend, using placeholder
-				timestamp
+		this.connection.on(
+			'ReceiveMessage',
+			(username: string, content: string, timestamp: string) => {
+				const message: ChatMessage = {
+					id: Date.now(), // Generate a simple numeric ID
+					content,
+					senderUsername: username,
+					senderId: 0, // We don't have sender ID from backend, using placeholder
+					timestamp,
+				}
+				this.messageHandlers.forEach((handler) => handler(message))
 			}
-			this.messageHandlers.forEach((handler) => handler(message))
-		})
+		)
 
 		this.connection.on('UserJoined', (username: string) => {
 			this.userJoinedHandlers.forEach((handler) => handler(username))
@@ -78,16 +81,19 @@ class ChatService {
 					.build()
 
 				// Re-setup event handlers
-				this.connection.on('ReceiveMessage', (username: string, content: string, timestamp: string) => {
-					const message: ChatMessage = {
-						id: Date.now(), // Generate a simple numeric ID
-						content,
-						senderUsername: username,
-						senderId: 0, // We don't have sender ID from backend, using placeholder
-						timestamp
+				this.connection.on(
+					'ReceiveMessage',
+					(username: string, content: string, timestamp: string) => {
+						const message: ChatMessage = {
+							id: Date.now(), // Generate a simple numeric ID
+							content,
+							senderUsername: username,
+							senderId: 0, // We don't have sender ID from backend, using placeholder
+							timestamp,
+						}
+						this.messageHandlers.forEach((handler) => handler(message))
 					}
-					this.messageHandlers.forEach((handler) => handler(message))
-				})
+				)
 
 				this.connection.on('UserJoined', (username: string) => {
 					this.userJoinedHandlers.forEach((handler) => handler(username))

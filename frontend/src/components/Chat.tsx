@@ -157,40 +157,43 @@ const Chat: React.FC = () => {
 						</p>
 					</div>
 				) : (
-					messages.map((message) => (
-						<div
-							key={message.id}
-							className={`flex ${
-								message.senderId === user?.id ? 'justify-end' : 'justify-start'
-							} animate-slide-up`}>
+					messages.map((message) => {
+						const isMyMessage = message.senderUsername === user?.username;
+						return (
 							<div
-								className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
-									message.senderId === user?.id
-										? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-br-md'
-										: 'bg-white text-gray-900 rounded-bl-md border border-gray-200'
-								}`}>
-								<div className='flex items-baseline space-x-2 mb-1'>
-									<span
-										className={`text-xs font-semibold ${
-											message.senderId === user?.id
-												? 'text-blue-100'
-												: 'text-gray-600'
-										}`}>
-										{message.senderUsername}
-									</span>
-									<span
-										className={`text-xs ${
-											message.senderId === user?.id
-												? 'text-blue-200'
-												: 'text-gray-400'
-										}`}>
-										{formatTime(message.timestamp)}
-									</span>
+								key={message.id}
+								className={`flex ${
+									isMyMessage ? 'justify-end' : 'justify-start'
+								} animate-slide-up mb-4`}>
+								<div
+									className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-lg transform transition-all duration-200 hover:scale-105 ${
+										isMyMessage
+											? 'bg-gradient-to-r from-green-500 to-green-600 text-white rounded-br-md ml-12'
+											: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 rounded-bl-md mr-12 border-l-4 border-blue-500'
+									}`}>
+									<div className='flex items-baseline space-x-2 mb-1'>
+										<span
+											className={`text-xs font-bold ${
+												isMyMessage
+													? 'text-green-100'
+													: 'text-blue-600'
+											}`}>
+											{isMyMessage ? 'me' : message.senderUsername}
+										</span>
+										<span
+											className={`text-xs ${
+												isMyMessage
+													? 'text-green-200'
+													: 'text-gray-500'
+											}`}>
+											{formatTime(message.timestamp)}
+										</span>
+									</div>
+									<p className='text-sm leading-relaxed font-medium'>{message.content}</p>
 								</div>
-								<p className='text-sm leading-relaxed'>{message.content}</p>
 							</div>
-						</div>
-					))
+						)
+					})
 				)}
 				<div ref={messagesEndRef} />
 			</div>
