@@ -1,4 +1,12 @@
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using CoolifyTestApi.Services;
+using CoolifyTestApi.Hubs;
+using CoolifyTestApi.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,12 +14,53 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Add services
+builder.Services.AddSingleton<IJwtService, JwtService>();
+builder.Services.AddSingleton<IUserService, UserService>();
+
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Add JWT Authentication
+var jwtSecret = builder.Configuration["JwtSecret"] ?? "your-super-secret-jwt-key-that-is-at-least-32-characters-long";
+var key = Encoding.ASCII.GetBytes(jwtSecret);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ClockSkew = TimeSpan.Zero
+        };
+        
+        // Configure SignalR JWT authentication
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chathub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000", "https://test-app.stor8.cloud")
+        policy.WithOrigins("http://localhost:3000", "https://localhost:3000", "http://localhost:5173", "https://test-app.stor8.cloud")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -29,63 +78,52 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+// Add authentication middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Health check endpoint
 app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow })
 .WithName("HealthCheck");
 
-// Weather forecast endpoint
-app.MapGet("/weatherforecast", () =>
+// Authentication endpoints
+app.MapPost("/login", async (LoginRequest request, IJwtService jwtService, IUserService userService) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
-// Simple users endpoint
-app.MapGet("/users", () =>
-{
-    var users = new[]
+    var user = await userService.AuthenticateAsync(request.Username, request.Password);
+    
+    if (user == null)
     {
-        new User(1, "John Doe", "john@example.com"),
-        new User(2, "Jane Smith", "jane@example.com"),
-        new User(3, "Bob Johnson", "bob@example.com")
-    };
-    return users;
+        return Results.Unauthorized();
+    }
+    
+    var token = jwtService.GenerateToken(user);
+    return Results.Ok(new LoginResponse(token, user.Username, user.Id));
+})
+.WithName("Login");
+
+// Get all users (authenticated)
+app.MapGet("/users", [Authorize] async (IUserService userService) =>
+{
+    var users = await userService.GetAllUsersAsync();
+    return Results.Ok(users);
 })
 .WithName("GetUsers");
 
-// Get user by ID
-app.MapGet("/users/{id}", (int id) =>
+// Get current user info
+app.MapGet("/me", [Authorize] async (ClaimsPrincipal user, IUserService userService) =>
 {
-    var users = new[]
+    var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+    if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
     {
-        new User(1, "John Doe", "john@example.com"),
-        new User(2, "Jane Smith", "jane@example.com"),
-        new User(3, "Bob Johnson", "bob@example.com")
-    };
+        return Results.Unauthorized();
+    }
     
-    var user = users.FirstOrDefault(u => u.Id == id);
-    return user is not null ? Results.Ok(user) : Results.NotFound();
+    var currentUser = await userService.GetByIdAsync(userId);
+    return currentUser != null ? Results.Ok(currentUser) : Results.NotFound();
 })
-.WithName("GetUserById");
+.WithName("GetCurrentUser");
+
+// Map SignalR hub
+app.MapHub<ChatHub>("/chathub");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
-
-record User(int Id, string Name, string Email);
