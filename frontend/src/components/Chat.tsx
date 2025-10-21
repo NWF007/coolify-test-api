@@ -166,28 +166,29 @@ const Chat: React.FC = () => {
 									isMyMessage ? 'justify-end' : 'justify-start'
 								} animate-slide-up mb-4`}>
 								<div
-									className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-lg transform transition-all duration-200 hover:scale-105 ${
+									className={`max-w-xs lg:max-w-md px-5 py-4 rounded-2xl shadow-lg transform transition-all duration-200 hover:scale-105 ${
 										isMyMessage
-											? 'bg-gradient-to-r from-green-500 to-green-600 rounded-br-md ml-12'
-											: 'bg-white rounded-bl-md mr-12 border-l-4 border-blue-500'
+											? 'bg-blue-600 rounded-br-md ml-12'
+											: 'bg-gray-800 rounded-bl-md mr-12 border-l-4 border-orange-500'
 									}`}>
-									<div className='flex items-baseline space-x-2 mb-1'>
+									<div className='flex items-baseline space-x-2 mb-2'>
 										<span
 											className={`text-xs font-bold ${
-												isMyMessage ? 'text-green-100' : 'text-blue-600'
+												isMyMessage ? 'text-blue-100' : 'text-orange-400'
 											}`}>
 											{isMyMessage ? 'me' : message.senderUsername}
 										</span>
 										<span
 											className={`text-xs ${
-												isMyMessage ? 'text-green-200' : 'text-gray-500'
+												isMyMessage ? 'text-blue-200' : 'text-gray-400'
 											}`}>
 											{formatTime(message.timestamp)}
 										</span>
 									</div>
-									<p className={`text-sm leading-relaxed font-medium ${
-										isMyMessage ? 'text-white' : 'text-gray-800'
-									}`}>
+									<p
+										className={`text-base font-semibold ${
+											isMyMessage ? 'text-white' : 'text-white'
+										}`}>
 										{message.content}
 									</p>
 								</div>
