@@ -2,6 +2,7 @@ import {
 	HubConnection,
 	HubConnectionBuilder,
 	LogLevel,
+	HttpTransportType,
 } from '@microsoft/signalr'
 import { ChatMessage } from './types'
 
@@ -25,6 +26,7 @@ class ChatService {
 		this.connection = new HubConnectionBuilder()
 			.withUrl(CHAT_HUB_URL, {
 				accessTokenFactory: () => token,
+				transport: HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling, // Fallback transports when WebSockets are blocked
 			})
 			.withAutomaticReconnect()
 			.configureLogging(LogLevel.Information)
@@ -44,11 +46,48 @@ class ChatService {
 		})
 
 		try {
+			console.log('Attempting to connect to chat hub...')
 			await this.connection.start()
-			console.log('Connected to chat hub')
+			console.log('Connected to chat hub successfully!')
+			console.log('Connection state:', this.connection.state)
 		} catch (error) {
 			console.error('Error connecting to chat hub:', error)
-			throw error
+			console.log('Trying alternative connection method...')
+			
+			// Try with different transport if WebSocket fails
+			try {
+				if (this.connection) {
+					await this.connection.stop()
+				}
+				
+				this.connection = new HubConnectionBuilder()
+					.withUrl(CHAT_HUB_URL, {
+						accessTokenFactory: () => token,
+						transport: HttpTransportType.LongPolling, // Fallback to long polling only
+					})
+					.withAutomaticReconnect()
+					.configureLogging(LogLevel.Information)
+					.build()
+
+				// Re-setup event handlers
+				this.connection.on('ReceiveMessage', (message: ChatMessage) => {
+					this.messageHandlers.forEach((handler) => handler(message))
+				})
+
+				this.connection.on('UserJoined', (username: string) => {
+					this.userJoinedHandlers.forEach((handler) => handler(username))
+				})
+
+				this.connection.on('UserLeft', (username: string) => {
+					this.userLeftHandlers.forEach((handler) => handler(username))
+				})
+
+				await this.connection.start()
+				console.log('Connected to chat hub using Long Polling fallback!')
+			} catch (fallbackError) {
+				console.error('Failed to connect even with fallback transport:', fallbackError)
+				throw fallbackError
+			}
 		}
 	}
 
