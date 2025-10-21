@@ -60,21 +60,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 			console.log('Starting login process...')
 			const response = await authApi.login(credentials)
 			console.log('Login API response:', response)
-			
-			localStorage.setItem('authToken', response.token)
-			localStorage.setItem(
-				'currentUser',
-				JSON.stringify({
-					id: response.userId,
-					username: response.username,
-					email: '', // We'll get this from the /me endpoint
-				})
-			)
 
-			console.log('Getting current user...')
-			const currentUser = await authApi.getCurrentUser()
-			console.log('Current user:', currentUser)
-			setUser(currentUser)
+			localStorage.setItem('authToken', response.token)
+
+			// Create user object from login response
+			const userFromLogin = {
+				id: response.userId,
+				username: response.username,
+				email: '', // We'll try to get this from /me, but it's not critical
+			}
+
+			localStorage.setItem('currentUser', JSON.stringify(userFromLogin))
+
+			// Try to get full user info, but don't fail if it doesn't work
+			try {
+				console.log('Getting current user from /me endpoint...')
+				const currentUser = await authApi.getCurrentUser()
+				console.log('Current user from /me:', currentUser)
+				setUser(currentUser)
+			} catch (meError) {
+				console.warn(
+					'Failed to get user from /me endpoint, using login response data:',
+					meError
+				)
+				// Use the data from login response if /me fails
+				setUser(userFromLogin)
+			}
+
 			console.log('User state updated, isAuthenticated should be true')
 		} catch (error) {
 			console.error('Login error:', error)

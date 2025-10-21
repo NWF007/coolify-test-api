@@ -28,9 +28,16 @@ api.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		if (error.response?.status === 401) {
-			localStorage.removeItem('authToken')
-			localStorage.removeItem('currentUser')
-			window.location.href = '/login'
+			// Don't auto-redirect if this is during the login flow or /me endpoint call
+			const isLoginFlow =
+				error.config?.url?.includes('/login') ||
+				error.config?.url?.includes('/me')
+
+			if (!isLoginFlow) {
+				localStorage.removeItem('authToken')
+				localStorage.removeItem('currentUser')
+				window.location.href = '/login'
+			}
 		}
 		return Promise.reject(error)
 	}
