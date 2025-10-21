@@ -1,84 +1,93 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, LoginRequest } from './types';
-import { authApi } from './api';
+import React, {
+	createContext,
+	useContext,
+	useState,
+	useEffect,
+	ReactNode,
+} from 'react'
+import { User, LoginRequest } from './types'
+import { authApi } from './api'
 
 interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (credentials: LoginRequest) => Promise<void>;
-  logout: () => void;
+	user: User | null
+	isAuthenticated: boolean
+	isLoading: boolean
+	login: (credentials: LoginRequest) => Promise<void>
+	logout: () => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+	const context = useContext(AuthContext)
+	if (!context) {
+		throw new Error('useAuth must be used within an AuthProvider')
+	}
+	return context
+}
 
 interface AuthProviderProps {
-  children: ReactNode;
+	children: ReactNode
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+	const [user, setUser] = useState<User | null>(null)
+	const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('authToken');
-      const savedUser = localStorage.getItem('currentUser');
-      
-      if (token && savedUser) {
-        try {
-          const currentUser = await authApi.getCurrentUser();
-          setUser(currentUser);
-        } catch (error) {
-          console.error('Failed to get current user:', error);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('currentUser');
-        }
-      }
-      setIsLoading(false);
-    };
+	useEffect(() => {
+		const initAuth = async () => {
+			const token = localStorage.getItem('authToken')
+			const savedUser = localStorage.getItem('currentUser')
 
-    initAuth();
-  }, []);
+			if (token && savedUser) {
+				try {
+					const currentUser = await authApi.getCurrentUser()
+					setUser(currentUser)
+				} catch (error) {
+					console.error('Failed to get current user:', error)
+					localStorage.removeItem('authToken')
+					localStorage.removeItem('currentUser')
+				}
+			}
+			setIsLoading(false)
+		}
 
-  const login = async (credentials: LoginRequest) => {
-    try {
-      const response = await authApi.login(credentials);
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: response.userId,
-        username: response.username,
-        email: '' // We'll get this from the /me endpoint
-      }));
-      
-      const currentUser = await authApi.getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      throw error;
-    }
-  };
+		initAuth()
+	}, [])
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
-    setUser(null);
-  };
+	const login = async (credentials: LoginRequest) => {
+		try {
+			const response = await authApi.login(credentials)
+			localStorage.setItem('authToken', response.token)
+			localStorage.setItem(
+				'currentUser',
+				JSON.stringify({
+					id: response.userId,
+					username: response.username,
+					email: '', // We'll get this from the /me endpoint
+				})
+			)
 
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    isLoading,
-    login,
-    logout,
-  };
+			const currentUser = await authApi.getCurrentUser()
+			setUser(currentUser)
+		} catch (error) {
+			throw error
+		}
+	}
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+	const logout = () => {
+		localStorage.removeItem('authToken')
+		localStorage.removeItem('currentUser')
+		setUser(null)
+	}
+
+	const value = {
+		user,
+		isAuthenticated: !!user,
+		isLoading,
+		login,
+		logout,
+	}
+
+	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
