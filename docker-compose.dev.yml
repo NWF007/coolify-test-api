@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: coolify-test-api-dev
+    ports:
+      - '5000:5000'
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+    volumes:
+      # Mount source code for development (optional)
+      - ./api:/app/src
+    networks:
+      - app-network
+
+  frontend:
+    image: node:18-alpine
+    container_name: coolify-test-frontend-dev
+    working_dir: /app
+    ports:
+      - '3000:3000'
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: >
+      sh -c "npm install && npm start"
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

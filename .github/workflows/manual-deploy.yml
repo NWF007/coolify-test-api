@@ -1,0 +1,43 @@
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    name: Manual Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy API
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ secrets.COOLIFY_WEBHOOK_API }}'
+          method: 'GET'
+          timeout: 30000
+
+      - name: Deploy Frontend
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ secrets.COOLIFY_WEBHOOK_FRONTEND }}'
+          method: 'GET'
+          timeout: 30000
+
+      - name: Deployment Summary
+        run: |
+          echo "🚀 Deployment to ${{ inputs.environment }} initiated"
+          echo "API Webhook called successfully"
+          echo "Frontend Webhook called successfully"
+          echo "Check Coolify dashboard for deployment status"

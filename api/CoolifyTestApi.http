@@ -1,0 +1,6 @@
+@CoolifyTestApi_HostAddress = http://localhost:5031
+
+GET {{CoolifyTestApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

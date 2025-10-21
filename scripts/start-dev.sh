@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Starting Coolify Test Application in Development Mode..."
+docker-compose -f docker-compose.dev.yml up --build

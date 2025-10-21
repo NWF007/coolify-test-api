@@ -1,0 +1,155 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE_NAME: ${{ github.repository }}-api
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore .NET dependencies
+        working-directory: ./api
+        run: dotnet restore
+
+      - name: Build .NET API
+        working-directory: ./api
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run .NET tests
+        working-directory: ./api
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Install Node.js dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build React app
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          REACT_APP_API_URL: ${{ vars.API_URL || 'http://localhost:5000' }}
+
+      - name: Run React tests
+        working-directory: ./frontend
+        run: npm test -- --coverage --passWithNoTests
+
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for API
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+
+      - name: Extract metadata for Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push API Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+
+      - name: Build and push Frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          build-args: |
+            REACT_APP_API_URL=${{ vars.API_URL || 'https://api.yourdomain.com' }}
+
+  deploy:
+    name: Deploy to Coolify
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy API to Coolify
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ secrets.COOLIFY_WEBHOOK_API }}'
+          method: 'GET'
+          timeout: 30000
+
+      - name: Deploy Frontend to Coolify
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ secrets.COOLIFY_WEBHOOK_FRONTEND }}'
+          method: 'GET'
+          timeout: 30000
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          # Wait a bit for services to start
+          sleep 10
+
+          # Check API health
+          curl -f "${{ vars.API_URL }}/health" || exit 1
+
+          # Check frontend (basic)
+          curl -f "${{ vars.FRONTEND_URL }}" || exit 1
+
+          echo "✅ Deployment successful and services are healthy!"
