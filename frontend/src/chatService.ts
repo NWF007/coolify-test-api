@@ -5,11 +5,11 @@ import {
 } from '@microsoft/signalr'
 import { ChatMessage } from './types'
 
-const CHAT_HUB_URL = process.env.REACT_APP_API_URL ? 
-	`${process.env.REACT_APP_API_URL}/chathub` :
-	(process.env.NODE_ENV === 'production'
-		? 'https://test-api.stor8.cloud/chathub'
-		: 'http://localhost:5123/chathub')
+const CHAT_HUB_URL = process.env.REACT_APP_API_URL
+	? `${process.env.REACT_APP_API_URL}/chathub`
+	: process.env.NODE_ENV === 'production'
+	? 'https://test-api.stor8.cloud/chathub'
+	: 'http://localhost:5123/chathub'
 
 class ChatService {
 	private connection: HubConnection | null = null

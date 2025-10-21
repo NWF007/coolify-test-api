@@ -21,11 +21,15 @@ builder.Services.AddSingleton<IUserService, UserService>();
 // Add SignalR
 builder.Services.AddSignalR();
 
-// Add JWT Authentication
-var jwtSecret = builder.Configuration["JwtSecret"] ?? "your-super-secret-jwt-key-that-is-at-least-32-characters-long";
-var key = Encoding.ASCII.GetBytes(jwtSecret);
+// Add JWT Authentication - Use same configuration as JwtService
+var jwtSecret = builder.Configuration["JWT:Secret"] ?? "YourVeryLongSecretKeyThatIsAtLeast32CharactersLong!";
+var jwtIssuer = builder.Configuration["JWT:Issuer"] ?? "CoolifyTestApi";
+var jwtAudience = builder.Configuration["JWT:Audience"] ?? "CoolifyTestApi";
+var key = Encoding.UTF8.GetBytes(jwtSecret);
 
 Console.WriteLine($"JWT Secret length: {jwtSecret.Length}");
+Console.WriteLine($"JWT Issuer: {jwtIssuer}");
+Console.WriteLine($"JWT Audience: {jwtAudience}");
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -35,8 +39,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
         
